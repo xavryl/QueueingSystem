@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Kiosk from './Kiosk';
 import Counter from './Counter';
 import Display from './Display';
+import AdminDashboard from './AdminDashboard'; 
 
 export default function App() {
   return (
@@ -18,7 +19,14 @@ export default function App() {
 
         {/* Catch-all: If someone types a weird URL, send them back to the Kiosk */}
         <Route path="*" element={<Navigate to="/" />} />
+
+        <Route path="/admin" element={<AdminDashboard />} />
+        
       </Routes>
+
+
+
+
     </BrowserRouter>
   );
 }

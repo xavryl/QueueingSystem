@@ -13,10 +13,7 @@ export default function Counter() {
     return saved !== null ? parseInt(saved, 10) : 1;
   });
 
-  // State for the Cockpit (Right Side)
   const [currentTicket, setCurrentTicket] = useState(null);
-  
-  // State for the God's-Eye View (Left Side)
   const [allServingWindows, setAllServingWindows] = useState([]); 
   const [waitingTickets, setWaitingTickets] = useState([]); 
   
@@ -26,7 +23,9 @@ export default function Counter() {
   const { speak, voices, speaking, queued } = useSpeechSynthesis();
 
   const isVoiceBusy = speaking || queued;
-  const isBusy = loading || isVoiceBusy;
+  
+  // FIX: Button is now completely disabled while database is syncing (isFetching)
+  const isBusy = loading || isVoiceBusy || isFetching;
 
   const theme = {
     background: '#F9FAFB',     
@@ -60,7 +59,6 @@ export default function Counter() {
       startOfToday.setHours(0, 0, 0, 0);
       const isoStart = startOfToday.toISOString();
       
-      // 1. Fetch ALL active tickets for the whole department
       const { data: servingData, error: servingError } = await supabase
         .from('tickets')
         .select('*')
@@ -71,7 +69,6 @@ export default function Counter() {
 
       if (servingError) throw servingError;
       
-      // 2. Fetch ALL waiting tickets
       const { data: waitingData, error: waitingError } = await supabase
         .from('tickets')
         .select('*')
@@ -82,13 +79,11 @@ export default function Counter() {
 
       if (waitingError) throw waitingError;
 
-      // 3. Map out the 4 Windows for the Sidebar
       const activeWindows = [1, 2, 3, 4].map(w => ({
         windowNumber: w,
         ticket: servingData?.find(t => t.window_number === w) || null
       }));
       
-      // 4. Update the UI
       setAllServingWindows(activeWindows);
       setCurrentTicket(servingData?.find(t => t.window_number === windowNumber) || null);
       setWaitingTickets(waitingData || []);
@@ -128,7 +123,8 @@ export default function Counter() {
     setLoading(true);
 
     try {
-      if (currentTicket) {
+      // FIX: Strict verification to guarantee we only complete THIS window's ticket
+      if (currentTicket && currentTicket.window_number === windowNumber) {
         await supabase
           .from('tickets')
           .update({ status: 'COMPLETED' })
@@ -159,6 +155,7 @@ export default function Counter() {
 
       const nextTicket = nextTickets[0];
 
+      // FIX: Adding .eq('status', 'WAITING') prevents two windows from grabbing the exact same ticket
       const { data: updatedTicket, error: updateError } = await supabase
         .from('tickets')
         .update({ 
@@ -167,10 +164,15 @@ export default function Counter() {
             window_number: windowNumber
         })
         .eq('id', nextTicket.id)
+        .eq('status', 'WAITING') 
         .select()
         .single(); 
 
-      if (updateError) throw updateError;
+      if (updateError) {
+         console.warn("Ticket grabbed by another window, trying again...");
+         // This protects against two staff clicking "Call Next" at the exact same millisecond
+         return handleCallNext(); 
+      }
 
       fetchDashboardData(false);
       setCurrentTicket(updatedTicket);
@@ -190,11 +192,9 @@ export default function Counter() {
     }
   };
 
-  // --- DATA SLICING LOGIC ---
   const allPriority = waitingTickets.filter(t => t.is_priority);
   const allRegular = waitingTickets.filter(t => !t.is_priority);
   
-  // Cap at 8 to perfectly fill two rows of a 4-column grid
   const topPriority = allPriority.slice(0, 8);
   const topRegular = allRegular.slice(0, 8);
 
@@ -215,7 +215,6 @@ export default function Counter() {
           </p>
         </div>
 
-        {/* 1. NOW SERVING (ALL WINDOWS) */}
         <div style={{ marginBottom: '3vh', flex: '0 0 auto' }}>
           <h3 style={{ fontSize: '1.4vh', color: theme.textMuted, margin: '0 0 1vh 0', fontWeight: '800', letterSpacing: '0.1vw' }}>ACTIVE COUNTERS</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1vh' }}>
@@ -230,7 +229,6 @@ export default function Counter() {
           </div>
         </div>
 
-        {/* 2. PRIORITY QUEUE (4 COLUMNS) */}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginBottom: '2vh' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1vh' }}>
             <h3 style={{ fontSize: '1.4vh', color: theme.priorityText, margin: 0, fontWeight: '800', letterSpacing: '0.1vw' }}>PRIORITY</h3>
@@ -243,7 +241,7 @@ export default function Counter() {
                 <span style={{ fontSize: '1.4vh', color: theme.disabledText, fontWeight: '700' }}>EMPTY</span>
               </div>
             ) : (
-              topPriority.map((ticket, index) => (
+              topPriority.map((ticket) => (
                 <div key={ticket.id} style={{ backgroundColor: theme.priorityBadge, color: theme.priorityText, borderRadius: '0.6vw', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '1vh 0', boxShadow: '0 0.5vh 1vh rgba(146, 64, 14, 0.05)' }}>
                   <span style={{ fontSize: '1.8vh', fontWeight: '900', letterSpacing: '0.05vw' }}>{ticket.ticket_number}</span>
                 </div>
@@ -252,7 +250,6 @@ export default function Counter() {
           </div>
         </div>
 
-        {/* 3. REGULAR QUEUE (4 COLUMNS) */}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1vh' }}>
             <h3 style={{ fontSize: '1.4vh', color: theme.textMuted, margin: 0, fontWeight: '800', letterSpacing: '0.1vw' }}>REGULAR</h3>
@@ -265,7 +262,7 @@ export default function Counter() {
                 <span style={{ fontSize: '1.4vh', color: theme.disabledText, fontWeight: '700' }}>EMPTY</span>
               </div>
             ) : (
-              topRegular.map((ticket, index) => (
+              topRegular.map((ticket) => (
                 <div key={ticket.id} style={{ backgroundColor: theme.regularBadge, color: theme.regularText, borderRadius: '0.6vw', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '1vh 0', boxShadow: '0 0.5vh 1vh rgba(0, 0, 0, 0.02)' }}>
                   <span style={{ fontSize: '1.8vh', fontWeight: '900', letterSpacing: '0.05vw' }}>{ticket.ticket_number}</span>
                 </div>
@@ -292,7 +289,10 @@ export default function Counter() {
             <label style={{ fontSize: '1.4vh', fontWeight: '800', color: theme.textMuted, letterSpacing: '0.05vw' }}>ASSIGNED DEPARTMENT</label>
             <select 
               value={departmentId} 
-              onChange={(e) => setDepartmentId(parseInt(e.target.value))}
+              onChange={(e) => {
+                setDepartmentId(parseInt(e.target.value));
+                setCurrentTicket(null); // FIX: Instantly clear state on swap
+              }}
               disabled={isBusy}
               style={{ width: '100%', padding: '1.8vh 1vw', fontSize: '1.8vh', fontWeight: '700', color: theme.textDark, backgroundColor: theme.surface, border: `0.2vw solid ${theme.outline}`, borderRadius: '0.8vw', outline: 'none', cursor: isBusy ? 'not-allowed' : 'pointer', letterSpacing: '0.05vw' }}
             >
@@ -305,7 +305,10 @@ export default function Counter() {
             <label style={{ fontSize: '1.4vh', fontWeight: '800', color: theme.textMuted, letterSpacing: '0.05vw' }}>STATION / WINDOW NUMBER</label>
             <select 
               value={windowNumber} 
-              onChange={(e) => setWindowNumber(parseInt(e.target.value))}
+              onChange={(e) => {
+                setWindowNumber(parseInt(e.target.value));
+                setCurrentTicket(null); // FIX: Instantly clear state on swap
+              }}
               disabled={isBusy}
               style={{ width: '100%', padding: '1.8vh 1vw', fontSize: '1.8vh', fontWeight: '700', color: theme.textDark, backgroundColor: theme.surface, border: `0.2vw solid ${theme.outline}`, borderRadius: '0.8vw', outline: 'none', cursor: isBusy ? 'not-allowed' : 'pointer', letterSpacing: '0.05vw' }}
             >
