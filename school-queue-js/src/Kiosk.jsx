@@ -78,13 +78,7 @@ export default function Kiosk({ onNavigate }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: theme.backgroundGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"Inter", "Segoe UI", sans-serif', padding: '4vw', overflow: 'hidden', textTransform: 'uppercase' }}>
       
-      {/* DEV NAVIGATION BUTTON (Temporary) */}
-      <button 
-        onClick={onNavigate} 
-        style={{ position: 'fixed', bottom: '10px', left: '10px', zIndex: 9999, fontSize: '12px', padding: '5px', opacity: 0.3, cursor: 'pointer', background: '#ccc', border: 'none' }}
-      >
-        Nav
-      </button>
+     
 
       {/* MAIN KIOSK CONTAINER */}
       <div style={{ backgroundColor: theme.surface, padding: '5vh 4vw', borderRadius: '2vw', border: `0.4vw solid ${theme.outline}`, boxShadow: '0 2vh 5vh rgba(0,0,0,0.4)', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
