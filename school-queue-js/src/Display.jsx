@@ -90,7 +90,7 @@ export default function Display() {
         >
           <option value={1}>VIEW REGISTRAR TV</option>
           <option value={2}>VIEW CASHIER TV</option>
-          <option value={3}>VIEW ADMISSIONS TV</option>
+
         </select>
       </header>
 
