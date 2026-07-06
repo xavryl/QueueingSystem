@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://shrsnvxoqytlbqxbnilf.supabase.co';
-const supabaseAnonKey = 'sb_publishable_irr_-q1Dc_royzYEpQIApw_uBAMy3eQ';
+// These pull from the Environment Variables you set in Vercel
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
