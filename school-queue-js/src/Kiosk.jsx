@@ -103,10 +103,10 @@ export default function Kiosk({ onNavigate }) {
           </button>
 
           <button 
-            onClick={() => handleOpenPopup(2, 'CSH', 'CASHIER')}
+            onClick={() => handleOpenPopup(2, 'ACT', 'ACCOUNTING')}
             style={{ flex: 1, fontSize: '4vh', cursor: 'pointer', backgroundColor: theme.surface, color: theme.textDark, border: `0.4vw solid ${theme.outline}`, borderRadius: '1.5vw', fontWeight: '900', letterSpacing: '0.1vw', transition: 'all 0.2s', textTransform: 'uppercase' }}
           >
-            CASHIER
+            ACCOUNTING
           </button>
         </div>
       </div>

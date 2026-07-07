@@ -297,7 +297,7 @@ export default function Counter() {
               style={{ width: '100%', padding: '1.8vh 1vw', fontSize: '1.8vh', fontWeight: '700', color: theme.textDark, backgroundColor: theme.surface, border: `0.2vw solid ${theme.outline}`, borderRadius: '0.8vw', outline: 'none', cursor: isBusy ? 'not-allowed' : 'pointer', letterSpacing: '0.05vw' }}
             >
               <option value={1}>REGISTRAR (REG)</option>
-              <option value={2}>CASHIER (CSH)</option>
+              <option value={2}>ACCOUNTING (ACT)</option>
             </select>
           </div>
 

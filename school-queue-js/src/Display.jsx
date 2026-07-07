@@ -127,7 +127,7 @@ export default function Display() {
             style={{ padding: '0.8vh 1.5vw', fontSize: '1.6vh', fontWeight: '800', backgroundColor: theme.surface, color: theme.textMuted, border: `0.2vw solid ${theme.outline}`, borderRadius: '0.5vw', cursor: 'pointer', outline: 'none' }}
           >
             <option value={1}>VIEW REGISTRAR TV</option>
-            <option value={2}>VIEW CASHIER TV</option>
+            <option value={2}>VIEW ACCOUNTING TV</option>
           </select>
         </header>
 
