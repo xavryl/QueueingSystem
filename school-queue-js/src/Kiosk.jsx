@@ -141,7 +141,7 @@ export default function Kiosk({ onNavigate }) {
               </button>
               
               <button onClick={() => handleGenerateTicket('VIP')} disabled={loading} style={{ padding: '1.5vw', fontSize: '1vw', cursor: 'pointer', borderRadius: '1vw', border: `0.2vw solid ${theme.outline}`, backgroundColor: theme.surface, color: theme.textDark, fontWeight: '900', letterSpacing: '0.05vw' }}>
-                VIP
+                PREGNANT
               </button>
             </div>
 
