@@ -105,7 +105,7 @@ export default function Counter() {
     const rawNumber = ticketNumber.split('-')[1];
     const cleanNumber = parseInt(rawNumber, 10);
     const deptName = deptId === 1 ? 'REGISTRAR' : deptId === 2 ? 'CASHIER' : 'ADMISSIONS';
-    const text = `${deptName} TICKET NUMBER ${cleanNumber}, PLEASE PROCEED TO COUNTER ${winNum}.`;
+    const text = `${deptName} TICKET NUMBER ${cleanNumber}, PLEASE PROCEED TO WINDOW ${winNum}.`;
     
     const femaleVoice = voices.find(v => 
       (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha')) && v.localService
