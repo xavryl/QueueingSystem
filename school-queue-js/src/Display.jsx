@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
+import { useSpeechSynthesis } from './hooks/useSpeechSynthesis'; 
 
 export default function Display() {
   const [departmentId, setDepartmentId] = useState(1);
   const [servingWindows, setServingWindows] = useState([]);
   const [waitingTickets, setWaitingTickets] = useState([]);
-
   const [displaySettings, setDisplaySettings] = useState({ type: 'TEXT', content: 'WELCOME TO OUR SCHOOL' });
+
+  // --- AUDIO LOGIC ---
+  const { speak, voices } = useSpeechSynthesis();
+  // Records the exact moment the TV loads. We only announce tickets called AFTER this time.
+  const lastAnnouncedRef = useRef(new Date().toISOString());
 
   const theme = {
     background: '#FFFFFF',
@@ -19,6 +24,25 @@ export default function Display() {
     outline: '#E2E8F0',
     priorityBg: '#FEF08A',
     priorityText: '#854D0E'
+  };
+
+  const announceTicket = (ticketNumber, deptId, winNum) => {
+    if (!ticketNumber) return;
+    const rawNumber = ticketNumber.split('-')[1];
+    const cleanNumber = parseInt(rawNumber, 10);
+    const deptName = deptId === 1 ? 'REGISTRAR' : deptId === 2 ? 'ACCOUNTING' : 'ADMISSIONS';
+    const text = `${deptName} TICKET NUMBER ${cleanNumber}, PLEASE PROCEED TO WINDOW ${winNum}.`;
+    
+    const femaleVoice = voices.find(v => 
+      (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha')) && v.localService
+    );
+    const selectedVoice = femaleVoice || voices.find(v => v.localService) || voices[0];
+
+    speak({
+      text: text,
+      voice: selectedVoice,
+      rate: 0.85
+    });
   };
 
   useEffect(() => {
@@ -35,6 +59,20 @@ export default function Display() {
           .eq('department_id', departmentId)
           .gte('created_at', isoStart)
           .order('called_at', { ascending: false });
+
+        // --- AUDIO TRIGGER LOGIC ---
+        if (servingData && servingData.length > 0) {
+          // Find the single ticket with the most recent called_at timestamp
+          const mostRecentTicket = servingData.reduce((latest, current) => {
+            return (new Date(current.called_at) > new Date(latest.called_at)) ? current : latest;
+          });
+
+          // If this ticket was called after our last announcement, announce it!
+          if (new Date(mostRecentTicket.called_at) > new Date(lastAnnouncedRef.current)) {
+            lastAnnouncedRef.current = mostRecentTicket.called_at;
+            announceTicket(mostRecentTicket.ticket_number, mostRecentTicket.department_id, mostRecentTicket.window_number);
+          }
+        }
 
         const activeWindows = [1, 2, 3, 4].map(windowNum => {
           const activeTicket = servingData?.find(t => t.window_number === windowNum);
@@ -76,9 +114,10 @@ export default function Display() {
     const intervalId = setInterval(fetchLiveQueue, 2000);
     return () => clearInterval(intervalId);
 
-  }, [departmentId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departmentId, voices]); 
 
-  const deptName = departmentId === 1 ? 'REGISTRAR' : departmentId === 2 ? 'CASHIER' : 'ADMISSIONS';
+  const deptName = departmentId === 1 ? 'REGISTRAR' : departmentId === 2 ? 'ACCOUNTING' : 'ADMISSIONS';
 
   const getYouTubeEmbedUrl = (url) => {
     if (!url) return '';
@@ -100,7 +139,6 @@ export default function Display() {
 
   return (
     <>
-      {/* INJECT KEYFRAMES FOR ANIMATED BACKGROUND */}
       <style>
         {`
           @keyframes movingGradient {
@@ -113,9 +151,6 @@ export default function Display() {
 
       <div style={{ position: 'fixed', inset: 0, backgroundColor: theme.background, display: 'flex', flexDirection: 'column', fontFamily: '"Inter", "Segoe UI", sans-serif', overflow: 'hidden', textTransform: 'uppercase', boxSizing: 'border-box' }}>
 
-        {/* ============================== */}
-        {/* HEADER SECTION                 */}
-        {/* ============================== */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `0.3vw solid ${theme.outline}`, padding: '1.5vh 3vw', backgroundColor: theme.background, flex: '0 0 auto', zIndex: 10 }}>
           <h1 style={{ margin: 0, color: theme.textMain, fontSize: '3.5vh', fontWeight: '900', letterSpacing: '0.2vw' }}>
             {deptName} <span style={{ color: theme.accentGreen }}>QUEUE</span>
@@ -131,17 +166,10 @@ export default function Display() {
           </select>
         </header>
 
-        {/* ============================== */}
-        {/* MAIN SPLIT SCREEN BODY         */}
-        {/* ============================== */}
         <div style={{ display: 'flex', flex: 1, width: '100%', overflow: 'hidden' }}>
 
-          {/* ================================== */}
-          {/* LEFT SIDE: QUEUE (50% Width)       */}
-          {/* ================================== */}
           <div style={{ width: '50%', padding: '2vw', display: 'flex', flexDirection: 'column', borderRight: `0.3vw solid ${theme.outline}`, boxSizing: 'border-box', backgroundColor: theme.surface }}>
 
-            {/* NOW SERVING (4 Columns) */}
             <div style={{ flex: '0 0 auto', marginBottom: '3vh' }}>
               <h2 style={{ fontSize: '2vh', color: theme.textMuted, margin: '0 0 1.5vh 0', fontWeight: '900', letterSpacing: '0.2vw' }}>
                 NOW SERVING
@@ -171,7 +199,6 @@ export default function Display() {
               </div>
             </div>
 
-            {/* NEXT IN LINE (4 Column Grid) */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <h2 style={{ fontSize: '2vh', color: theme.textMuted, margin: '0 0 1.5vh 0', fontWeight: '900', letterSpacing: '0.2vw' }}>
                 NEXT IN LINE
@@ -208,9 +235,6 @@ export default function Display() {
 
           </div>
 
-          {/* ================================== */}
-          {/* RIGHT SIDE: DYNAMIC MEDIA (50% W)  */}
-          {/* ================================== */}
           <div style={{
             width: '50%',
             display: 'flex',
@@ -220,7 +244,6 @@ export default function Display() {
             boxSizing: 'border-box',
             position: 'relative',
             overflow: 'hidden',
-            /* The Animated Background */
             background: 'linear-gradient(-45deg, #0F172A, #15803D, #062812, #0F172A)',
             backgroundSize: '400% 400%',
             animation: 'movingGradient 15s ease infinite'

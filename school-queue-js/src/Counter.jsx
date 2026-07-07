@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { useSpeechSynthesis } from './hooks/useSpeechSynthesis'; 
 
 export default function Counter() {
   const [departmentId, setDepartmentId] = useState(() => {
@@ -20,12 +19,8 @@ export default function Counter() {
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false); 
   
-  const { speak, voices, speaking, queued } = useSpeechSynthesis();
-
-  const isVoiceBusy = speaking || queued;
-  
-  // FIX: Button is now completely disabled while database is syncing (isFetching)
-  const isBusy = loading || isVoiceBusy || isFetching;
+  // Audio removed locally. TV handles it via database timestamp.
+  const isBusy = loading || isFetching;
 
   const theme = {
     background: '#F9FAFB',     
@@ -99,31 +94,13 @@ export default function Counter() {
     fetchDashboardData(true); 
     const intervalId = setInterval(() => fetchDashboardData(false), 3000);
     return () => clearInterval(intervalId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [departmentId, windowNumber]);
-
-  const announceTicket = (ticketNumber, deptId, winNum) => {
-    const rawNumber = ticketNumber.split('-')[1];
-    const cleanNumber = parseInt(rawNumber, 10);
-    const deptName = deptId === 1 ? 'REGISTRAR' : deptId === 2 ? 'CASHIER' : 'ADMISSIONS';
-    const text = `${deptName} TICKET NUMBER ${cleanNumber}, PLEASE PROCEED TO WINDOW ${winNum}.`;
-    
-    const femaleVoice = voices.find(v => 
-      (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha')) && v.localService
-    );
-    const selectedVoice = femaleVoice || voices.find(v => v.localService) || voices[0];
-
-    speak({
-      text: text,
-      voice: selectedVoice,
-      rate: 0.85
-    });
-  };
 
   const handleCallNext = async () => {
     setLoading(true);
 
     try {
-      // FIX: Strict verification to guarantee we only complete THIS window's ticket
       if (currentTicket && currentTicket.window_number === windowNumber) {
         await supabase
           .from('tickets')
@@ -155,7 +132,7 @@ export default function Counter() {
 
       const nextTicket = nextTickets[0];
 
-      // FIX: Adding .eq('status', 'WAITING') prevents two windows from grabbing the exact same ticket
+      // Automatically updates called_at, which triggers TV Audio
       const { data: updatedTicket, error: updateError } = await supabase
         .from('tickets')
         .update({ 
@@ -170,13 +147,11 @@ export default function Counter() {
 
       if (updateError) {
          console.warn("Ticket grabbed by another window, trying again...");
-         // This protects against two staff clicking "Call Next" at the exact same millisecond
          return handleCallNext(); 
       }
 
       fetchDashboardData(false);
       setCurrentTicket(updatedTicket);
-      announceTicket(updatedTicket.ticket_number, departmentId, windowNumber);
 
     } catch (error) {
       console.error("Error calling next ticket:", error);
@@ -186,9 +161,29 @@ export default function Counter() {
     }
   };
 
-  const handleRepeatCall = () => {
-    if (currentTicket) {
-      announceTicket(currentTicket.ticket_number, departmentId, windowNumber);
+  const handleRepeatCall = async () => {
+    if (!currentTicket) return;
+    
+    setLoading(true);
+    try {
+      // Create a fresh timestamp to trigger the TV Audio Observer
+      const newTimestamp = new Date().toISOString();
+      
+      const { error } = await supabase
+        .from('tickets')
+        .update({ called_at: newTimestamp })
+        .eq('id', currentTicket.id);
+
+      if (error) throw error;
+
+      setCurrentTicket(prev => ({ ...prev, called_at: newTimestamp }));
+      fetchDashboardData(false);
+
+    } catch (error) {
+      console.error("Error repeating call:", error);
+      alert("FAILED TO BROADCAST REPEAT COMMAND.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -291,7 +286,7 @@ export default function Counter() {
               value={departmentId} 
               onChange={(e) => {
                 setDepartmentId(parseInt(e.target.value));
-                setCurrentTicket(null); // FIX: Instantly clear state on swap
+                setCurrentTicket(null); 
               }}
               disabled={isBusy}
               style={{ width: '100%', padding: '1.8vh 1vw', fontSize: '1.8vh', fontWeight: '700', color: theme.textDark, backgroundColor: theme.surface, border: `0.2vw solid ${theme.outline}`, borderRadius: '0.8vw', outline: 'none', cursor: isBusy ? 'not-allowed' : 'pointer', letterSpacing: '0.05vw' }}
@@ -307,7 +302,7 @@ export default function Counter() {
               value={windowNumber} 
               onChange={(e) => {
                 setWindowNumber(parseInt(e.target.value));
-                setCurrentTicket(null); // FIX: Instantly clear state on swap
+                setCurrentTicket(null); 
               }}
               disabled={isBusy}
               style={{ width: '100%', padding: '1.8vh 1vw', fontSize: '1.8vh', fontWeight: '700', color: theme.textDark, backgroundColor: theme.surface, border: `0.2vw solid ${theme.outline}`, borderRadius: '0.8vw', outline: 'none', cursor: isBusy ? 'not-allowed' : 'pointer', letterSpacing: '0.05vw' }}
@@ -338,7 +333,7 @@ export default function Counter() {
                 disabled={isBusy}
                 style={{ marginTop: '3vh', padding: '1.5vh 3vw', fontSize: '1.6vh', fontWeight: '800', letterSpacing: '0.1vw', cursor: isBusy ? 'not-allowed' : 'pointer', borderRadius: '0.6vw', border: `0.15vw solid ${theme.outline}`, backgroundColor: isBusy ? theme.disabledBg : theme.surface, color: isBusy ? theme.disabledText : theme.textDark }}
               >
-                {isVoiceBusy ? 'BROADCASTING...' : 'REPEAT AUDIO CALL'}
+                {isBusy ? 'UPDATING...' : 'BROADCAST REPEAT CALL TO TV'}
               </button>
             </div>
           ) : (
