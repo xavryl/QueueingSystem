@@ -166,7 +166,7 @@ export default function AdminDashboard() {
   const handleQueueReset = async () => {
     const targetName = resetTarget === 'ALL' ? 'ALL DEPARTMENTS' : 
                        resetTarget === '1' ? 'REGISTRAR' : 
-                       'CASHIER';
+                       'ACCOUNTING';
 
     const confirmReset = window.confirm(
       `⚠️ WARNING: MANUAL QUEUE RESET ⚠️\n\nThis will instantly cancel all waiting and serving tickets for ${targetName}.\n\nAre you absolutely sure you want to proceed?`
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
   // ==========================
   const getDeptName = (id) => {
     if (id === 1) return 'REGISTRAR';
-    if (id === 2) return 'CASHIER';
+    if (id === 2) return 'ACCOUNTING';
     return 'UNKNOWN';
   };
 
@@ -354,7 +354,7 @@ export default function AdminDashboard() {
                   <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} style={{ padding: '1vh 1vw', fontSize: '1.4vh', fontWeight: '700', border: `0.15vw solid ${theme.outlineLight}`, borderRadius: '0.5vw', outline: 'none' }}>
                     <option value="ALL">ALL DEPTS</option>
                     <option value="1">REGISTRAR</option>
-                    <option value="2">CASHIER</option>
+                    <option value="2">ACCOUNTING</option>
                   </select>
                 </div>
 
@@ -503,7 +503,7 @@ export default function AdminDashboard() {
                   >
                     <option value="ALL">🚨 ALL DEPARTMENTS (FULL WIPE)</option>
                     <option value="1">REGISTRAR ONLY</option>
-                    <option value="2">CASHIER ONLY</option>
+                    <option value="2">ACCOUNTING ONLY</option>
                   </select>
                 </div>
 
