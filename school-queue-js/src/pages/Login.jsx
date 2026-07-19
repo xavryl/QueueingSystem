@@ -34,12 +34,13 @@ export default function Login() {
 
       // Save session locally
       // Inside your handleLogin try-block
-localStorage.setItem('queue_user', JSON.stringify({
-  username: data.username,
-  role: data.role,
-  department_id: data.department_id,
-  window_number: data.window_number
-}));
+// Save session locally (Inside Login.jsx -> handleLogin)
+      localStorage.setItem('queue_user', JSON.stringify({
+        username: data.username,
+        role: data.role,
+        department_id: data.department_id, // <-- THIS MUST BE HERE
+        window_number: data.window_number
+      }));
 
       // Route based on role
       if (data.role === 'ADMIN') {

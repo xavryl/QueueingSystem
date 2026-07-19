@@ -6,11 +6,18 @@ export default function Display() {
   const [departmentId, setDepartmentId] = useState(1);
   const [servingWindows, setServingWindows] = useState([]);
   const [waitingTickets, setWaitingTickets] = useState([]);
-  const [displaySettings, setDisplaySettings] = useState({ type: 'TEXT', content: 'WELCOME TO OUR SCHOOL' });
+  
+  // Added new styling properties to the default state
+  const [displaySettings, setDisplaySettings] = useState({ 
+    type: 'TEXT', 
+    content: 'WELCOME TO OUR SCHOOL',
+    bgColor: '#0F172A',
+    textColor: '#FFFFFF',
+    fontFamily: 'system-ui, -apple-system, sans-serif'
+  });
 
   // --- AUDIO LOGIC ---
   const { speak, voices } = useSpeechSynthesis();
-  // Records the exact moment the TV loads. We only announce tickets called AFTER this time.
   const lastAnnouncedRef = useRef(new Date().toISOString());
 
   const theme = {
@@ -60,14 +67,11 @@ export default function Display() {
           .gte('created_at', isoStart)
           .order('called_at', { ascending: false });
 
-        // --- AUDIO TRIGGER LOGIC ---
         if (servingData && servingData.length > 0) {
-          // Find the single ticket with the most recent called_at timestamp
           const mostRecentTicket = servingData.reduce((latest, current) => {
             return (new Date(current.called_at) > new Date(latest.called_at)) ? current : latest;
           });
 
-          // If this ticket was called after our last announcement, announce it!
           if (new Date(mostRecentTicket.called_at) > new Date(lastAnnouncedRef.current)) {
             lastAnnouncedRef.current = mostRecentTicket.called_at;
             announceTicket(mostRecentTicket.ticket_number, mostRecentTicket.department_id, mostRecentTicket.window_number);
@@ -76,10 +80,7 @@ export default function Display() {
 
         const activeWindows = [1, 2, 3, 4].map(windowNum => {
           const activeTicket = servingData?.find(t => t.window_number === windowNum);
-          return {
-            windowNumber: windowNum,
-            ticket: activeTicket || null
-          };
+          return { windowNumber: windowNum, ticket: activeTicket || null };
         });
 
         const { data: waitingData } = await supabase
@@ -92,14 +93,21 @@ export default function Display() {
           .order('created_at', { ascending: true })
           .limit(16);
 
+        // ARCHITECTURAL FIX: Use departmentId to fetch the correct TV settings!
         const { data: settingsData } = await supabase
           .from('display_settings')
           .select('*')
-          .eq('id', 1)
+          .eq('id', departmentId)
           .single();
 
         if (settingsData) {
-          setDisplaySettings({ type: settingsData.media_type, content: settingsData.media_content });
+          setDisplaySettings({ 
+            type: settingsData.media_type, 
+            content: settingsData.media_content,
+            bgColor: settingsData.bg_color || '#0F172A',
+            textColor: settingsData.text_color || '#FFFFFF',
+            fontFamily: settingsData.font_family || 'system-ui, -apple-system, sans-serif'
+          });
         }
 
         setServingWindows(activeWindows);
@@ -139,16 +147,6 @@ export default function Display() {
 
   return (
     <>
-      <style>
-        {`
-          @keyframes movingGradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-        `}
-      </style>
-
       <div style={{ position: 'fixed', inset: 0, backgroundColor: theme.background, display: 'flex', flexDirection: 'column', fontFamily: '"Inter", "Segoe UI", sans-serif', overflow: 'hidden', textTransform: 'uppercase', boxSizing: 'border-box' }}>
 
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `0.3vw solid ${theme.outline}`, padding: '2vh 3vw', backgroundColor: theme.background, flex: '0 0 auto', zIndex: 10 }}>
@@ -235,6 +233,7 @@ export default function Display() {
 
           </div>
 
+          {/* DYNAMIC MEDIA PANEL */}
           <div style={{
             width: '50%',
             display: 'flex',
@@ -244,9 +243,7 @@ export default function Display() {
             boxSizing: 'border-box',
             position: 'relative',
             overflow: 'hidden',
-            background: 'linear-gradient(-45deg, #0F172A, #15803D, #062812, #0F172A)',
-            backgroundSize: '400% 400%',
-            animation: 'movingGradient 15s ease infinite'
+            backgroundColor: displaySettings.type === 'TEXT' ? displaySettings.bgColor : '#000000'
           }}>
 
             {displaySettings.type === 'VIDEO' && (
@@ -282,12 +279,12 @@ export default function Display() {
             {displaySettings.type === 'TEXT' && (
               <div style={{ padding: '5vw', textAlign: 'center', zIndex: 1 }}>
                 <h2 style={{
-                  color: '#FFFFFF',
+                  color: displaySettings.textColor,
+                  fontFamily: displaySettings.fontFamily,
                   fontSize: '7vh',
                   fontWeight: '900',
                   letterSpacing: '0.2vw',
-                  lineHeight: 1.4,
-                  textShadow: '0 1vh 3vh rgba(0,0,0,0.5)'
+                  lineHeight: 1.4
                 }}>
                   {displaySettings.content}
                 </h2>

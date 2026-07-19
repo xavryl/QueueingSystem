@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { adminTheme as theme } from '../../utils/theme';
 
-export default function StaffManagement() {
+export default function StaffManagement({ deptId }) {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -13,22 +13,30 @@ export default function StaffManagement() {
     username: '',
     password: '',
     role: 'STAFF',
-    department_id: 1, 
-    window_number: 1 // Default to Window 1
+    department_id: deptId || 1, // Fallback to 1 if Master Admin
+    window_number: 1 
   });
 
   useEffect(() => {
+    // Removed the 'if (deptId)' block so Master Admins can load the data
     fetchUsers();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deptId]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('app_users')
         .select('id, username, role, department_id, window_number, created_at')
         .order('created_at', { ascending: false });
       
+      // MULTI-TENANT LOCK: Only filter by department if the admin belongs to one
+      if (deptId) {
+        query = query.eq('department_id', deptId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setUsers(data || []);
     } catch (error) {
@@ -45,7 +53,7 @@ export default function StaffManagement() {
 
   const resetForm = () => {
     setEditingId(null);
-    setFormData({ username: '', password: '', role: 'STAFF', department_id: 1, window_number: 1 });
+    setFormData({ username: '', password: '', role: 'STAFF', department_id: deptId || 1, window_number: 1 });
   };
 
   // --- CREATE & UPDATE LOGIC ---
@@ -57,8 +65,9 @@ export default function StaffManagement() {
       const payload = {
         username: formData.username,
         role: formData.role,
-        // Admins don't need a department or window assigned
-        department_id: formData.role === 'ADMIN' ? null : parseInt(formData.department_id),
+        // If locked to a dept, force it. Otherwise, use the dropdown selection.
+        department_id: deptId ? deptId : parseInt(formData.department_id),
+        // Admins don't sit at windows
         window_number: formData.role === 'ADMIN' ? null : parseInt(formData.window_number)
       };
 
@@ -136,7 +145,7 @@ export default function StaffManagement() {
   const getDeptName = (id) => {
     if (id === 1) return 'REGISTRAR';
     if (id === 2) return 'ACCOUNTING';
-    return 'N/A';
+    return 'UNKNOWN';
   };
 
   return (
@@ -193,41 +202,49 @@ export default function StaffManagement() {
               style={{ width: '100%', padding: '1.5vh', fontSize: '1.6vh', borderRadius: '0.5vw', border: `0.2vw solid ${theme.outlineLight}`, outline: 'none' }}
             >
               <option value="STAFF">STANDARD STAFF</option>
-              <option value="ADMIN">ADMINISTRATOR</option>
+              <option value="ADMIN">DEPARTMENT ADMIN</option>
             </select>
           </div>
 
-          {/* Department & Window Select (Hidden for Admins) */}
-          {formData.role === 'STAFF' && (
-            <>
-              <div>
-                <label style={{ display: 'block', fontSize: '1.2vh', fontWeight: '800', color: theme.textMuted, marginBottom: '0.5vh' }}>ASSIGNED DEPARTMENT</label>
-                <select 
-                  name="department_id"
-                  value={formData.department_id} 
-                  onChange={handleInputChange} 
-                  style={{ width: '100%', padding: '1.5vh', fontSize: '1.6vh', borderRadius: '0.5vw', border: `0.2vw solid ${theme.outlineLight}`, outline: 'none' }}
-                >
-                  <option value={1}>REGISTRAR (REG)</option>
-                  <option value={2}>ACCOUNTING (ACT)</option>
-                </select>
+          {/* DYNAMIC DEPARTMENT SELECTOR */}
+          {deptId ? (
+            <div>
+              <label style={{ display: 'block', fontSize: '1.2vh', fontWeight: '800', color: theme.textMuted, marginBottom: '0.5vh' }}>ASSIGNED DEPARTMENT</label>
+              <div style={{ width: '100%', padding: '1.5vh', fontSize: '1.6vh', borderRadius: '0.5vw', border: `0.2vw solid ${theme.outlineLight}`, backgroundColor: theme.disabledBg, color: theme.disabledText, fontWeight: '700' }}>
+                {getDeptName(deptId)} (LOCKED)
               </div>
+            </div>
+          ) : (
+            <div>
+              <label style={{ display: 'block', fontSize: '1.2vh', fontWeight: '800', color: theme.textMuted, marginBottom: '0.5vh' }}>ASSIGNED DEPARTMENT</label>
+              <select 
+                name="department_id"
+                value={formData.department_id} 
+                onChange={handleInputChange} 
+                style={{ width: '100%', padding: '1.5vh', fontSize: '1.6vh', borderRadius: '0.5vw', border: `0.2vw solid ${theme.outlineLight}`, outline: 'none' }}
+              >
+                <option value={1}>REGISTRAR (REG)</option>
+                <option value={2}>ACCOUNTING (ACT)</option>
+              </select>
+            </div>
+          )}
 
-              <div>
-                <label style={{ display: 'block', fontSize: '1.2vh', fontWeight: '800', color: theme.textMuted, marginBottom: '0.5vh' }}>ASSIGNED WINDOW</label>
-                <select 
-                  name="window_number"
-                  value={formData.window_number} 
-                  onChange={handleInputChange} 
-                  style={{ width: '100%', padding: '1.5vh', fontSize: '1.6vh', borderRadius: '0.5vw', border: `0.2vw solid ${theme.outlineLight}`, outline: 'none' }}
-                >
-                  <option value={1}>WINDOW 01</option>
-                  <option value={2}>WINDOW 02</option>
-                  <option value={3}>WINDOW 03</option>
-                  <option value={4}>WINDOW 04</option>
-                </select>
-              </div>
-            </>
+          {/* Window Select (Hidden for Admins) */}
+          {formData.role === 'STAFF' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '1.2vh', fontWeight: '800', color: theme.textMuted, marginBottom: '0.5vh' }}>ASSIGNED WINDOW</label>
+              <select 
+                name="window_number"
+                value={formData.window_number} 
+                onChange={handleInputChange} 
+                style={{ width: '100%', padding: '1.5vh', fontSize: '1.6vh', borderRadius: '0.5vw', border: `0.2vw solid ${theme.outlineLight}`, outline: 'none' }}
+              >
+                <option value={1}>WINDOW 01</option>
+                <option value={2}>WINDOW 02</option>
+                <option value={3}>WINDOW 03</option>
+                <option value={4}>WINDOW 04</option>
+              </select>
+            </div>
           )}
 
           <button 
@@ -273,7 +290,7 @@ export default function StaffManagement() {
                 </span>
                 
                 <span style={{ color: theme.textMuted, fontSize: '1.4vh' }}>
-                  {user.role === 'ADMIN' ? 'ALL ACCESS' : getDeptName(user.department_id)}
+                  {getDeptName(user.department_id)}
                 </span>
 
                 <span style={{ color: theme.textMuted, fontSize: '1.4vh' }}>
