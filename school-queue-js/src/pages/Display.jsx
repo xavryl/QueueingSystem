@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from './supabaseClient';
-import { useSpeechSynthesis } from './hooks/useSpeechSynthesis'; 
+import { supabase } from '../services/supabaseClient';
+import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis'; 
 
 export default function Display() {
   const [departmentId, setDepartmentId] = useState(1);
@@ -151,15 +151,15 @@ export default function Display() {
 
       <div style={{ position: 'fixed', inset: 0, backgroundColor: theme.background, display: 'flex', flexDirection: 'column', fontFamily: '"Inter", "Segoe UI", sans-serif', overflow: 'hidden', textTransform: 'uppercase', boxSizing: 'border-box' }}>
 
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `0.3vw solid ${theme.outline}`, padding: '1.5vh 3vw', backgroundColor: theme.background, flex: '0 0 auto', zIndex: 10 }}>
-          <h1 style={{ margin: 0, color: theme.textMain, fontSize: '3.5vh', fontWeight: '900', letterSpacing: '0.2vw' }}>
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `0.3vw solid ${theme.outline}`, padding: '2vh 3vw', backgroundColor: theme.background, flex: '0 0 auto', zIndex: 10 }}>
+          <h1 style={{ margin: 0, color: theme.textMain, fontSize: '4.5vh', fontWeight: '900', letterSpacing: '0.2vw' }}>
             {deptName} <span style={{ color: theme.accentGreen }}>QUEUE</span>
           </h1>
 
           <select
             value={departmentId}
             onChange={(e) => setDepartmentId(parseInt(e.target.value))}
-            style={{ padding: '0.8vh 1.5vw', fontSize: '1.6vh', fontWeight: '800', backgroundColor: theme.surface, color: theme.textMuted, border: `0.2vw solid ${theme.outline}`, borderRadius: '0.5vw', cursor: 'pointer', outline: 'none' }}
+            style={{ padding: '1vh 1.5vw', fontSize: '2vh', fontWeight: '800', backgroundColor: theme.surface, color: theme.textMuted, border: `0.2vw solid ${theme.outline}`, borderRadius: '0.5vw', cursor: 'pointer', outline: 'none' }}
           >
             <option value={1}>VIEW REGISTRAR TV</option>
             <option value={2}>VIEW ACCOUNTING TV</option>
@@ -171,27 +171,27 @@ export default function Display() {
           <div style={{ width: '50%', padding: '2vw', display: 'flex', flexDirection: 'column', borderRight: `0.3vw solid ${theme.outline}`, boxSizing: 'border-box', backgroundColor: theme.surface }}>
 
             <div style={{ flex: '0 0 auto', marginBottom: '3vh' }}>
-              <h2 style={{ fontSize: '2vh', color: theme.textMuted, margin: '0 0 1.5vh 0', fontWeight: '900', letterSpacing: '0.2vw' }}>
+              <h2 style={{ fontSize: '2.8vh', color: theme.textMuted, margin: '0 0 1.5vh 0', fontWeight: '900', letterSpacing: '0.2vw' }}>
                 NOW SERVING
               </h2>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1vw' }}>
                 {servingWindows.map((win) => (
-                  <div key={win.windowNumber} style={{ backgroundColor: theme.background, border: `0.2vw solid ${win.ticket ? theme.accentGreen : theme.outline}`, borderRadius: '0.8vw', padding: '1.5vh 0.5vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: win.ticket ? `0 0.5vh 1.5vh rgba(21, 128, 61, 0.15)` : '0 0.5vh 1vh rgba(0,0,0,0.02)', transition: 'all 0.3s ease' }}>
+                  <div key={win.windowNumber} style={{ backgroundColor: theme.background, border: `0.2vw solid ${win.ticket ? theme.accentGreen : theme.outline}`, borderRadius: '0.8vw', padding: '2vh 1vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: win.ticket ? `0 0.5vh 1.5vh rgba(21, 128, 61, 0.15)` : '0 0.5vh 1vh rgba(0,0,0,0.02)', transition: 'all 0.3s ease' }}>
 
-                    <div style={{ backgroundColor: win.ticket ? theme.accentGreen : theme.surfaceHighlight, color: win.ticket ? theme.background : theme.textDim, padding: '0.5vh 1vw', borderRadius: '2vw', fontSize: '1.2vh', fontWeight: '900', letterSpacing: '0.1vw', marginBottom: '1vh' }}>
+                    <div style={{ backgroundColor: win.ticket ? theme.accentGreen : theme.surfaceHighlight, color: win.ticket ? theme.background : theme.textDim, padding: '0.8vh 1.2vw', borderRadius: '2vw', fontSize: '1.6vh', fontWeight: '900', letterSpacing: '0.1vw', marginBottom: '1.5vh' }}>
                       WIN {win.windowNumber}
                     </div>
 
                     {win.ticket ? (
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '3.5vh', fontWeight: '900', color: theme.textMain, letterSpacing: '-0.1vw', lineHeight: 1, marginBottom: '0.5vh' }}>
+                        <div style={{ fontSize: '5.5vh', fontWeight: '900', color: theme.textMain, letterSpacing: '-0.1vw', lineHeight: 1, marginBottom: '0.5vh' }}>
                           {win.ticket.ticket_number}
                         </div>
                       </div>
                     ) : (
-                      <div style={{ height: '4vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '1.4vh', color: theme.textDim, fontWeight: '800', letterSpacing: '0.1vw' }}>READY</span>
+                      <div style={{ height: '5.5vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '2vh', color: theme.textDim, fontWeight: '800', letterSpacing: '0.1vw' }}>READY</span>
                       </div>
                     )}
                   </div>
@@ -200,28 +200,28 @@ export default function Display() {
             </div>
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <h2 style={{ fontSize: '2vh', color: theme.textMuted, margin: '0 0 1.5vh 0', fontWeight: '900', letterSpacing: '0.2vw' }}>
+              <h2 style={{ fontSize: '2.8vh', color: theme.textMuted, margin: '0 0 1.5vh 0', fontWeight: '900', letterSpacing: '0.2vw' }}>
                 NEXT IN LINE
               </h2>
 
-              <div style={{ flex: 1, backgroundColor: theme.background, borderRadius: '1vw', border: `0.2vw solid ${theme.outline}`, padding: '1.5vw', boxShadow: '0 0.5vh 1vh rgba(0,0,0,0.02)' }}>
+              <div style={{ flex: 1, backgroundColor: theme.background, borderRadius: '1vw', border: `0.2vw solid ${theme.outline}`, padding: '2vw', boxShadow: '0 0.5vh 1vh rgba(0,0,0,0.02)' }}>
                 {waitingTickets.length === 0 ? (
                   <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <p style={{ fontSize: '2vh', color: theme.textDim, fontWeight: '800', letterSpacing: '0.1vw' }}>
+                    <p style={{ fontSize: '3vh', color: theme.textDim, fontWeight: '800', letterSpacing: '0.1vw' }}>
                       QUEUE IS EMPTY
                     </p>
                   </div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridAutoRows: 'min-content', gap: '1vw', alignContent: 'start' }}>
                     {waitingTickets.map((ticket) => (
-                      <div key={ticket.id} style={{ backgroundColor: theme.surfaceHighlight, padding: '1.5vh 1vw', borderRadius: '0.6vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                      <div key={ticket.id} style={{ backgroundColor: theme.surfaceHighlight, padding: '2vh 1vw', borderRadius: '0.6vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
 
-                        <span style={{ fontSize: '2.2vh', fontWeight: '900', color: theme.textMain, letterSpacing: '0.1vw' }}>
+                        <span style={{ fontSize: '3.2vh', fontWeight: '900', color: theme.textMain, letterSpacing: '0.1vw' }}>
                           {ticket.ticket_number}
                         </span>
 
                         {ticket.is_priority && (
-                          <span style={{ backgroundColor: theme.priorityBg, color: theme.priorityText, padding: '0.3vh 0.8vw', borderRadius: '0.4vw', fontSize: '1vh', fontWeight: '900', letterSpacing: '0.05vw', marginTop: '0.5vh' }}>
+                          <span style={{ backgroundColor: theme.priorityBg, color: theme.priorityText, padding: '0.5vh 1vw', borderRadius: '0.4vw', fontSize: '1.4vh', fontWeight: '900', letterSpacing: '0.05vw', marginTop: '1vh' }}>
                             PRIORITY
                           </span>
                         )}
@@ -283,7 +283,7 @@ export default function Display() {
               <div style={{ padding: '5vw', textAlign: 'center', zIndex: 1 }}>
                 <h2 style={{
                   color: '#FFFFFF',
-                  fontSize: '5vh',
+                  fontSize: '7vh',
                   fontWeight: '900',
                   letterSpacing: '0.2vw',
                   lineHeight: 1.4,
