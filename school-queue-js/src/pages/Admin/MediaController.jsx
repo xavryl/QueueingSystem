@@ -126,9 +126,15 @@ export default function MediaController({ deptId }) {
       {/* HEADER & TV SELECTOR */}
       <div style={{ borderBottom: `0.15vw solid ${theme.outlineLight}`, paddingBottom: '2vh', marginBottom: '4vh', flex: '0 0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h2 style={{ fontSize: '3.5vh', margin: '0 0 1vh 0', fontWeight: '900', letterSpacing: '0.1vw' }}>
-            TV CONTROLLER
-          </h2>
+          <h2 style={{ 
+  fontSize: '3.5vh', 
+  margin: '0 0 1vh 0', 
+  fontWeight: '900', 
+  letterSpacing: '0.1vw',
+  color: theme.textDark // This ensures it matches the rest of your app
+}}>
+  TV CONTROLLER
+</h2>
           <p style={{ color: theme.textMuted, margin: 0, fontSize: '1.6vh', fontWeight: '700' }}>
             Select a department to update and preview its public display.
           </p>
